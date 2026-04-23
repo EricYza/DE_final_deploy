@@ -61,7 +61,7 @@ spec:
         node-role.kubernetes.io/storage: ""
       containers:
         - name: postgres
-          image: localhost:32000/postgres:16-bookworm
+          image: postgres:16-bookworm
           ports:
             - containerPort: 5432
           env:

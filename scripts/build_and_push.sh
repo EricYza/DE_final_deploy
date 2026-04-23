@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-REGISTRY="${REGISTRY:-localhost:32000}"
+REGISTRY="${REGISTRY:-10.10.5.21:32000}"
 IMAGE_NAME="${IMAGE_NAME:-climate-airflow-stable}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 
