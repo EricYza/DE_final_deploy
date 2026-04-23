@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: climate-stable-minio-pv
+  labels:
+    app: climate-minio
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: climate-stable-minio
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /var/data/climate-stable/minio
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: climate-minio-pvc
+  namespace: climate-stable
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: climate-stable-minio
+  resources:
+    requests:
+      storage: 20Gi
+  selector:
+    matchLabels:
+      app: climate-minio
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: climate-minio
+  namespace: climate-stable
+  labels:
+    app: climate-minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: climate-minio
+  template:
+    metadata:
+      labels:
+        app: climate-minio
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/storage: ""
+      containers:
+        - name: minio
+          image: quay.io/minio/minio:latest
+          args: ["server", "/data", "--console-address", ":9090"]
+          ports:
+            - containerPort: 9000
+              name: api
+            - containerPort: 9090
+              name: console
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: climate-stable-secrets
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: climate-stable-secrets
+                  key: MINIO_ROOT_PASSWORD
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "384Mi"
+      volumes:
+        - name: minio-data
+          persistentVolumeClaim:
+            claimName: climate-minio-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: climate-minio
+  namespace: climate-stable
+spec:
+  type: NodePort
+  selector:
+    app: climate-minio
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30930
+      name: api
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30931
+      name: console
