@@ -1,4 +1,11 @@
-"""Weather preparation DAG for the climate pipeline."""
+"""
+Author: Ziang Yang
+Description: Airflow DAG for the Silver-stage preparation workflow in the climate data pipeline.
+Reads raw Bronze JSON files from MinIO, validates and transforms the weather observations into
+standardized analytical fields, writes parquet outputs to MinIO Silver, verifies expected files,
+and triggers the downstream publication stage.
+
+"""
 
 from __future__ import annotations
 
@@ -49,6 +56,8 @@ def _expected_source_objects(logical_date):
     return objects
 
 
+# We derive the Silver path directly from the Bronze path so both layers stay aligned
+# on the same location/date partitioning scheme.
 def _prepared_key(source_key: str) -> str:
     return source_key.replace(BRONZE_HOURLY_PREFIX, SILVER_HOURLY_PREFIX, 1).replace(
         ".json",
@@ -56,6 +65,8 @@ def _prepared_key(source_key: str) -> str:
     )
 
 
+# We do not begin transformation work until the full Bronze slice for the target date exists.
+# This keeps the Silver stage from normalizing an incomplete upstream partition.
 def verify_bronze_ready(**kwargs) -> None:
     logical_date = kwargs["logical_date"]
     s3 = get_s3_client()
@@ -72,6 +83,8 @@ def verify_bronze_ready(**kwargs) -> None:
     logger.info("Bronze inputs verified: files=%d", len(expected_objects))
 
 
+# We transform each Bronze object into one Silver parquet artifact. Keeping the mapping
+# one-to-one makes the intermediate layer easy for us to inspect, rerun, and validate.
 def prepare_previous_day(**kwargs) -> None:
     logical_date = kwargs["logical_date"]
     s3 = get_s3_client()
@@ -118,6 +131,8 @@ def prepare_previous_day(**kwargs) -> None:
     )
 
 
+# We only hand control to the publish stage after the entire Silver partition exists.
+# This prevents PostgreSQL from loading an incomplete analytical slice.
 def verify_silver_ready(**kwargs) -> None:
     logical_date = kwargs["logical_date"]
     s3 = get_s3_client()

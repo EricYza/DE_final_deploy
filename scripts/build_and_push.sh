@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Author: Ziang Yang
+# Description: Helper script for building and pushing the custom Airflow image.
+# Note: This script is intended as a local-PC helper for testing or ad hoc image operations.
+# It is not the formal remote-node deployment procedure for the lab cluster.
+# For actual remote deployment, follow the setup instructions in README.md.
+
 set -euo pipefail
 
 REGISTRY="${REGISTRY:-10.10.5.21:32000}"

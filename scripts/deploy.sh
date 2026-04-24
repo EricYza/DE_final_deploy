@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Author: Ziang Yang
+# Description: Helper script for applying the Kubernetes manifests in sequence with basic waits.
+# Note: This script is intended mainly for local-PC testing or simplified helper usage.
+# It is not the formal remote-node deployment procedure for the lab cluster.
+# For actual remote deployment, follow the setup instructions in README.md.
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

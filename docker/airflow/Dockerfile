@@ -1,3 +1,9 @@
+# Author: Ziang Yang
+# Description: Docker image definition for the custom Airflow runtime used by the climate
+# data pipeline. Installs Python and system dependencies required by the DAGs, copies the
+# shared pipeline modules and DAG files into the Airflow image, and prepares the runtime
+# environment used in Kubernetes deployments.
+
 FROM apache/airflow:2.9.3-python3.11
 
 USER root

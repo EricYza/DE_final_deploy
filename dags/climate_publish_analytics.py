@@ -1,4 +1,11 @@
-"""Analytics publish DAG for the climate pipeline."""
+"""
+Author: Ziang Yang
+Description: Airflow DAG for the Gold-stage publication workflow in the climate data pipeline.
+Reads transformed Silver parquet files from MinIO, initializes and loads the PostgreSQL
+analytical schema, refreshes serve-layer summaries and derived tables, and records pipeline
+quality-check metrics for the published dataset.
+
+"""
 
 from __future__ import annotations
 
@@ -44,6 +51,8 @@ def _expected_prepared_objects(logical_date):
     return objects
 
 
+# We verify the full Silver partition before touching PostgreSQL so publication never
+# produces a partial analytical day from missing parquet inputs.
 def verify_silver_ready(**kwargs) -> None:
     logical_date = kwargs["logical_date"]
     s3 = get_s3_client()
@@ -60,11 +69,15 @@ def verify_silver_ready(**kwargs) -> None:
     logger.info("Silver inputs verified: files=%d", len(expected_objects))
 
 
+# We initialize the schema on publish runs so a fresh cluster can bootstrap the final
+# analytical layer without any separate manual database setup step.
 def init_analytics_schema(**kwargs) -> None:
     init_schema()
     logger.info("Analytics schema initialized")
 
 
+# We load one Silver partition at a time into PostgreSQL so the final layer stays aligned
+# with the same location/date boundaries used in Bronze and Silver.
 def publish_previous_day(**kwargs) -> None:
     logical_date = kwargs["logical_date"]
     s3 = get_s3_client()
@@ -86,11 +99,15 @@ def publish_previous_day(**kwargs) -> None:
     logger.info("Analytics publish complete: rows=%d", total_rows)
 
 
+# We refresh the serve layer only after base observations are loaded, so downstream SQL
+# queries always see summaries derived from the latest published partition.
 def refresh_views(**kwargs) -> None:
     results = refresh_serve_layer()
     logger.info("Serve layer refreshed: %s", results)
 
 
+# We end the run with lightweight quality checks to confirm that the published layer
+# contains the expected analytical footprint for monitoring and demo purposes.
 def run_quality_checks(**kwargs) -> None:
     metrics = fetch_analytics_quality_metrics()
     logger.info("Quality summary: %s", metrics)

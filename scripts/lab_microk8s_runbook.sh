@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# Author: Ziang Yang
+# Description: Helper runbook script that groups common lab commands for copying files, building
+# images, and checking deployment state.
+# Note: This script is a helper/reference for local-PC testing and command rehearsal only.
+# It should not be treated as the formal remote-node deployment procedure.
+# For the actual deployment process, follow the setup instructions in README.md step by step.
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

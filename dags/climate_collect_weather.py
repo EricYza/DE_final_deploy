@@ -1,4 +1,11 @@
-"""Weather collection DAG for the climate pipeline."""
+"""
+Author: Ziang Yang
+Description: Airflow DAG for the Bronze-stage collection workflow in the climate data pipeline.
+Fetches the previous business day's hourly weather data from Open-Meteo for each configured
+location, stores raw JSON payloads in MinIO Bronze, verifies expected outputs, and triggers
+the downstream preparation stage.
+
+"""
 
 from __future__ import annotations
 
@@ -35,6 +42,8 @@ def init_storage(**kwargs) -> None:
     logger.info("MinIO buckets verified")
 
 
+# We derive expected Bronze object keys from the same logical date that drives the DAG,
+# so collection and verification always agree on one business partition.
 def _expected_raw_objects(logical_date):
     target_date = (logical_date - timedelta(days=1)).date()
     date_nodash = target_date.strftime("%Y%m%d")
@@ -50,6 +59,8 @@ def _expected_raw_objects(logical_date):
     return objects
 
 
+# We collect one location per task and attach ingestion metadata before writing Bronze.
+# This keeps each raw file traceable back to the Airflow run that produced it.
 def fetch_daily_weather(location_id: str, **kwargs) -> None:
     logical_date = kwargs["logical_date"]
     target_date = (logical_date - timedelta(days=1)).date()
@@ -81,6 +92,8 @@ def fetch_daily_weather(location_id: str, **kwargs) -> None:
     logger.info("Weather collection complete for %s: %s", location_id, raw_key)
 
 
+# We verify the full Bronze partition before triggering the next DAG so downstream work
+# never starts from a partially collected date.
 def verify_bronze_ready(**kwargs) -> None:
     logical_date = kwargs["logical_date"]
     s3 = get_s3_client()

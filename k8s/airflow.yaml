@@ -1,3 +1,9 @@
+# Author: Ziang Yang
+# Description: Kubernetes manifest for deploying the Airflow components of the climate data
+# pipeline, including configuration, initialization steps, webserver, scheduler, and service
+# exposure. This manifest runs the custom Airflow image and connects it to MinIO and PostgreSQL
+# inside the cluster.
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
